@@ -1,6 +1,6 @@
 # Mfms
 
-Library to communicate with 
+Library to communicate with Mobile Finance Management Solutions
 
 ## Installation
 
@@ -17,6 +17,8 @@ Or install it yourself as:
     $ TODO
 
 ## Usage
+    
+Define settinfs:
 
     Mfms::SMS.settings = {
       :login      => 'login',
@@ -27,14 +29,22 @@ Or install it yourself as:
       :cert       => 'path/to/cert',
     }
 
+Initialize sms:
+
     sms = Mfms::SMS.new('phone','title','text') # initialize sms
+
+Send it and get sent sms id and dispatch code
+
     sms.send # send sms
     sms.id # get sms id
-    sms.code # get sms id
+    sms.code # get sms dispatch code
 
 Ex.:
 
     sms = Mfms::SMS.new('79031111111','MyFavouriteCompany','Testing mfms gem')
+    sms.send
+    sms.id # => 1032
+    sms.code # => ok
 
 ## Contributing
 
