@@ -5,7 +5,7 @@ require 'mfms/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "Mfms"
-  spec.version       = Capistrano::Version.to_s
+  spec.version       = Mfms::Version.to_s
   spec.authors       = ["Fokin Eugene", "Ilia Stepanov"]
   spec.email         = ["e.fokin@revoup.ru", "i.stepanov"]
   spec.description   = %q{This library helps to send sms via mfms service}
