@@ -6,7 +6,7 @@ Library to communicate with
 
 Add this line to your application's Gemfile:
 
-    gem 'mfms', :git => 'git@github.com:RevoTechnology/mfms.git' # TODO: push to rubygems
+    $ gem 'mfms', :git => 'git@github.com:RevoTechnology/mfms.git' # TODO: push to rubygems
 
 And then execute:
 
@@ -18,23 +18,23 @@ Or install it yourself as:
 
 ## Usage
 
-  Mfms::SMS.settings = {
-    :login      => 'login',
-    :password   => 'password',
-    :server     => 'server',
-    :port       => port,
-    :ssl_port   => ssl_port,
-    :cert       => 'path/to/cert',
-  }
+    Mfms::SMS.settings = {
+      :login      => 'login',
+      :password   => 'password',
+      :server     => 'server',
+      :port       => port,
+      :ssl_port   => ssl_port,
+      :cert       => 'path/to/cert',
+    }
 
-  sms = Mfms::SMS.new('phone','title','text') # initialize sms
-  sms.send # send sms
-  sms.id # get sms id
-  sms.code # get sms id
+    sms = Mfms::SMS.new('phone','title','text') # initialize sms
+    sms.send # send sms
+    sms.id # get sms id
+    sms.code # get sms id
 
 Ex.:
 
-  sms = Mfms::SMS.new('79031111111','MyFavouriteCompany','Testing mfms gem')
+    sms = Mfms::SMS.new('79031111111','MyFavouriteCompany','Testing mfms gem')
 
 ## Contributing
 
