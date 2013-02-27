@@ -1,5 +1,4 @@
-require "mfms/version"
+require 'mfms/version'
 
-module Mfms
-  # Your code goes here...
-end
+require 'mfms/sms'
+
