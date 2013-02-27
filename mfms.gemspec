@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'mfms/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "Mfms"
+  spec.name          = "mfms"
   spec.version       = Mfms::Version.to_s
   spec.authors       = ["Fokin Eugene", "Ilia Stepanov"]
   spec.email         = ["e.fokin@revoup.ru", "i.stepanov"]

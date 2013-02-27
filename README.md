@@ -6,7 +6,7 @@ Library to communicate with Mobile Finance Management Solutions
 
 Add this line to your application's Gemfile:
 
-    $ gem 'mfms', :git => 'git@github.com:RevoTechnology/mfms.git' # TODO: push to rubygems
+    $ gem 'mfms'
 
 And then execute:
 
@@ -14,7 +14,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ TODO
+    $ gem install mfms
 
 ## Usage
     
