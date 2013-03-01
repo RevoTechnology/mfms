@@ -37,7 +37,7 @@ module Mfms
     end
 
     def send
-      return stubbed_send if (defined?(Rails) && !Rails.env.production?)
+      #return stubbed_send if (defined?(Rails) && !Rails.env.production?)
 
       establish_connection(@ssl).start do |http|
         request = Net::HTTP::Get.new(send_url)
@@ -99,10 +99,10 @@ module Mfms
     #   {:url => "#{server}:#{port}#{url}", :sms_message => message}.to_json
     # end
 
-  private
+    private
 
-    def stubbed_send
-    end
+    #def stubbed_send
+    #end
 
     def establish_connection(ssl=true)
       http = Net::HTTP.new(@@server, @port)
