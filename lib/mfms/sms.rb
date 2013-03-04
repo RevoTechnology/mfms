@@ -7,14 +7,13 @@ module Mfms
   class SMS
 
     attr_accessor :phone, :subject, :message
-    attr_reader :code, :id
+    attr_reader :id, :status
 
-    def initialize(phone, subject, message, ssl=true)
-      @port = ssl ? @@ssl_port : @@port
-      @ssl = ssl
+    def initialize(phone, subject, message)
       @phone = phone
       @subject = subject
       @message = message
+      @status = 'not-sent'
 
       validate!
     end
@@ -27,72 +26,68 @@ module Mfms
       @@ssl_port = settings[:ssl_port]
       @@cert_store = OpenSSL::X509::Store.new
       @@cert_store.add_cert OpenSSL::X509::Certificate.new File.read(settings[:cert])
+      @@ssl = settings[:ssl] & true # connect using ssl by default
 
       validate_settings!
     end
 
-    def ssl=(flag)
-      @port = flag ? @@ssl_port : @@port
-      @ssl = flag
+    def self.ssl=(flag)
+      @@ssl = flag
     end
+
+    def self.ssl
+      @@ssl
+    end
+
+    # => SMS send status codes:
+    #    "ok"                     "Сообщения приняты на отправку"
+    #    "error-system"           "При обработке данного сообщения произошла системная ошибка"
+    #    "error-address-format"   "Ошибка формата адреса"
+    #    "error-address-unknown"  "Отправка по данному направлению не разрешена"
+    #    "error-subject-format"   "Ошибка формата отправителя"
+    #    "error-subject-unknown"  "Данный отправителть не разрешен на нашей платформе"
 
     def send
       #return stubbed_send if (defined?(Rails) && !Rails.env.production?)
-
-      establish_connection(@ssl).start do |http|
+      self.class.establish_connection.start do |http|
         request = Net::HTTP::Get.new(send_url)
         response = http.request(request)
-        splitted_body = response.body.split(';')
-        @code = splitted_body[0]
-        @id = splitted_body[2]
-        # result = case res_code
-        #   when "ok" then "сообщения приняты на отправку"
-        #   when "error-system" then "при обработке данного сообщения произошла системная ошибка"
-        #   when "error-address-format" then "ошибка формата адреса"
-        #   when "error-address-unknown" then "отправка по данному направлению не разрешена"
-        #   when "error-subject-format" then "ошибка формата отправителя"
-        #   when "error-subject-unknown" then "данный отправителть не разрешен на нашей платформе"
-        # end
+        body = response.body.split(';')
+        return body[0] unless body[0] == 'ok'
+        @status = 'sent'
+        @id = body[2]
+      end
+    end
+    
+    # => SMS delivery status codes:
+    #    "enqueued"     "Сообщение находится в очереди на отправку"
+    #    "sent"         "Сообщение отправлено"
+    #    "delivered"    "Сообщение доставлено до абонента"
+    #    "undelivered"  "Сообщение недоставлено до абонента"
+    #    "failed"       "Сообщение недоставлено из-за ошибки на платформе"
+    #    "delayed"      "Было указано отложенное время отправки и сообщение ожидает его"
+    #    "cancelled"    "Сообщение было отменено вручную на нашей платформе"
+
+    # => SMS status check response codes:
+    #    "ok"                           "Запрос успешно обработан"
+    #    "error-system"                 "Произошла системная ошибка"
+    #    "error-provider-id-unknown"    "Сообщение с таким идентификатором не найдено"
+
+    def self.status(id)
+      establish_connection.start do |http|
+        request = Net::HTTP::Get.new(status_url id)
+        response = http.request(request)
+        body = response.body.split(';')
+        return body[0], body[2] # code, status
       end
     end
 
-    # Not used atm
-
-    # def self.status msg_id
-    #   puts "Сообщение присвоен ID:"
-    #   puts msg_id
-
-    #   connection = establish_connection(@ssl)
-    #   connection.start do |http|
-    #     request = Net::HTTP::Get.new(status_url msg_id)
-    #     response = http.request(request)
-    #     splitted_body = response.body.split(';')
-    #     res_code = splitted_body[0]
-    #     result = case res_code
-    #       when "ok" then "Запрос успешно обработан"
-    #       when "error-system" then "Произошла системная ошибка"
-    #       when "error-provider-id-unknown" then "Сообщение с таким идентификатором не найдено"
-    #     end
-    #     stat_code = splitted_body[2]
-    #     unless stat_code.nil?
-    #       @status = case stat_code
-    #         when "enqueued" then "сообщение находится в очереди на отправку"
-    #         when "sent" then "сообщение отправлено"
-    #         when "delivered" then "сообщение доставлено до абонента"
-    #         when "undelivered" then "сообщение недоставлено до абонента"
-    #         when "failed" then "сообщение недоставлено из-за ошибки на платформе"
-    #         when "delayed" then "было указано отложенное время отправки и сообщение ожидает его"
-    #         when "cancelled" then "сообщение было отменено вручную на нашей платформе"
-    #       end
-    #     end
-    #   end
-
-    #   if @status
-    #     @status
-    #   else
-    #     "ошибка"
-    #   end
-    # end 
+    def update_status
+      return @status if @id.nil?
+      code, status = self.class.status(@id)
+      return code unless code == 'ok'
+      @status = status
+    end
 
     # What for?
     # def to_json
@@ -101,35 +96,29 @@ module Mfms
 
     private
 
-    #def stubbed_send
-    #end
-
-    def establish_connection(ssl=true)
-      http = Net::HTTP.new(@@server, @port)
-      if ssl
+      def self.establish_connection
+        port = @@ssl ? @@ssl_port : @@port
+        http = Net::HTTP.new(@@server, port)
+        http.use_ssl = @@ssl
         http.cert_store = @@cert_store
-        http.use_ssl = true
+        http
       end
-      http
-    end
 
-    def validate! 
-    end
+      def validate!
+      end
 
-    def self.validate_settings!
-    end
+      def self.validate_settings!
+      end
 
-    def send_url
-      "/revoup/connector0/send?login=#{@@login}&password=#{@@password}&" +
-      "subject[0]=#{@subject}&address[0]=#{@phone}&text[0]=#{URI.encode(@message)}"
-    end
+      def send_url
+        "/revoup/connector0/send?login=#{@@login}&password=#{@@password}&" +
+        "subject[0]=#{@subject}&address[0]=#{@phone}&text[0]=#{URI.encode(@message)}"
+      end
 
-    # Not used atm
-
-    # def status_url msg_id
-    #   "/revoup/connector0/status?login=#{@@login}&password=#{@@password}&" +
-    #   "providerId[0]=#{msg_id}"
-    # end
+      def self.status_url msg_id
+        "/revoup/connector0/status?login=#{@@login}&password=#{@@password}&" +
+        "providerId[0]=#{msg_id}"
+      end
 
   end
 end

@@ -18,7 +18,7 @@ Or install it yourself as:
 
 ## Usage
     
-Define settinfs:
+Define settings:
 
     Mfms::SMS.settings = {
       :login      => 'login',
@@ -27,24 +27,32 @@ Define settinfs:
       :port       => port,
       :ssl_port   => ssl_port,
       :cert       => 'path/to/cert',
+      :ssl        => true # default is true
     }
 
 Initialize sms:
 
     sms = Mfms::SMS.new('phone','title','text') # initialize sms
 
-Send it and get sent sms id and dispatch code
+Send it and get sent sms id and dispatch code:
 
-    sms.send # send sms
+    sms.send # send sms. returns sms id or dispatch code if something went wrong
     sms.id # get sms id
-    sms.code # get sms dispatch code
+
+Get current sms status and update it:
+
+    sms.status # get sms delivery status
+    sms.update_status # updates sms delivery status. returns status or status check response code on error
+
+Get any sms status:
+
+    code, status = Mfms::SMS.status(sms_id) # code - response code can contain error description, status - sms delivery status if code is 'ok'
 
 Ex.:
 
     sms = Mfms::SMS.new('79031111111','MyFavouriteCompany','Testing mfms gem')
-    sms.send
+    sms.send # => 1032
     sms.id # => 1032
-    sms.code # => ok
 
 ## Contributing
 
