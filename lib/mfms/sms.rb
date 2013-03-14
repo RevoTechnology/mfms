@@ -24,9 +24,8 @@ module Mfms
       @@server = settings[:server]
       @@port = settings[:port]
       @@ssl_port = settings[:ssl_port]
-      @@cert_store = OpenSSL::X509::Store.new
-      @@cert_store.add_cert OpenSSL::X509::Certificate.new File.read(settings[:cert])
-      @@ssl = settings[:ssl] & true # connect using ssl by default
+      @@cert_store = init_cert_store settings[:cert]
+      @@ssl = !settings[:ssl].nil? ? settings[:ssl] : true # connect using ssl by default
 
       validate_settings!
     end
@@ -105,9 +104,28 @@ module Mfms
       end
 
       def validate!
+        raise ArgumentError, "Phone should be assigned to #{self.class}." if @phone.nil?
+        raise ArgumentError, "Phone number should contain only numbers. Minimum length is 10. #{@phone.inspect} is given." unless @phone =~ /^[0-9]{10,}$/
+        raise ArgumentError, "Subject should be assigned to #{self.class}." if @subject.nil?
+        raise ArgumentError, "Message should be assigned to #{self.class}." if @message.nil?
+      end
+
+      def self.init_cert_store cert
+        raise ArgumentError, "Path to certificate should be defined for #{self}." if cert.nil?
+        raise ArgumentError, "Certificate file '#{File.expand_path(cert)}' does not exist." unless File.exist?(cert)
+        cert_store = OpenSSL::X509::Store.new
+        cert_store.add_cert OpenSSL::X509::Certificate.new File.read(cert)
+        cert_store
       end
 
       def self.validate_settings!
+        raise ArgumentError, "Login should be defined for #{self}." if @@login.nil?
+        raise ArgumentError, "Password should be defined for #{self}." if @@password.nil?
+        raise ArgumentError, "Server should be defined for #{self}." if @@server.nil?
+        raise ArgumentError, "Port should be defined for #{self}." if @@port.nil?
+        raise ArgumentError, "Port for ssl should be defined for #{self}." if @@ssl_port.nil?
+        raise ArgumentError, "Port should contain only numbers. #{@@port.inspect} is given." unless @@port.instance_of?(Fixnum)
+        raise ArgumentError, "Port for ssl should contain only numbers. #{@@ssl_port.inspect} is given." unless @@ssl_port.instance_of?(Fixnum)
       end
 
       def send_url
