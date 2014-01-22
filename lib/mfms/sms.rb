@@ -2,6 +2,7 @@
 require 'net/http'
 require 'openssl'
 require 'uri'
+require 'translit'
 
 module Mfms
   class SMS
@@ -26,7 +27,7 @@ module Mfms
       @@ssl_port = settings[:ssl_port]
       @@cert_store = init_cert_store settings[:cert]
       @@ssl = !settings[:ssl].nil? ? settings[:ssl] : true # connect using ssl by default
-
+      @@translit = !settings[:translit].nil? ? settings[:translit] : false # use translit or not
       validate_settings!
     end
 
@@ -129,8 +130,9 @@ module Mfms
       end
 
       def send_url
+        message = @@translit ? Translit.convert(@message) : @message
         "/revoup/connector0/send?login=#{@@login}&password=#{@@password}&" +
-        "subject[0]=#{@subject}&address[0]=#{@phone}&text[0]=#{URI.encode(@message)}"
+        "subject[0]=#{@subject}&address[0]=#{@phone}&text[0]=#{URI.encode(message)}"
       end
 
       def self.status_url msg_id
