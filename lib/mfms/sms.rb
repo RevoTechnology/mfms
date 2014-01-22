@@ -2,7 +2,7 @@
 require 'net/http'
 require 'openssl'
 require 'uri'
-require 'translit'
+require 'russian'
 
 module Mfms
   class SMS
@@ -10,11 +10,12 @@ module Mfms
     attr_accessor :phone, :subject, :message
     attr_reader :id, :status
 
-    def initialize(phone, subject, message)
+    def initialize(phone, subject, message, translit = @@translit)
       @phone = phone
       @subject = subject
       @message = message
       @status = 'not-sent'
+      @translit = translit
 
       validate!
     end
@@ -89,11 +90,6 @@ module Mfms
       @status = status
     end
 
-    # What for?
-    # def to_json
-    #   {:url => "#{server}:#{port}#{url}", :sms_message => message}.to_json
-    # end
-
     private
 
       def self.establish_connection
@@ -130,7 +126,7 @@ module Mfms
       end
 
       def send_url
-        message = @@translit ? Translit.convert(@message) : @message
+        message = @translit ? Russian.translit(@message) : @message
         "/revoup/connector0/send?login=#{@@login}&password=#{@@password}&" +
         "subject[0]=#{@subject}&address[0]=#{@phone}&text[0]=#{URI.encode(message)}"
       end

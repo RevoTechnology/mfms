@@ -34,6 +34,7 @@ Define settings:
 Initialize sms:
 
     sms = Mfms::SMS.new('phone','title','text') # initialize sms
+    sms = Mfms::SMS.new('phone','title','text',false) # last parameter overrides 'translit' option
 
 Send it and get sent sms id and dispatch code:
 

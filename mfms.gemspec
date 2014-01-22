@@ -16,5 +16,5 @@ Gem::Specification.new do |spec|
   spec.files         = `git ls-files`.split($/)
   spec.require_paths = ["lib"]
 
-  spec.add_dependency 'translit'
+  spec.add_dependency 'russian', '0.6.0'
 end
