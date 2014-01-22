@@ -28,6 +28,7 @@ Define settings:
       :ssl_port   => ssl_port,
       :cert       => 'path/to/cert',
       :ssl        => true # default is true
+      :translit   => true # default is false
     }
 
 Initialize sms:
