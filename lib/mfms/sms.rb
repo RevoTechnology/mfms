@@ -59,7 +59,7 @@ module Mfms
         @id = body[2]
       end
     end
-    
+
     # => SMS delivery status codes:
     #    "enqueued"     "Сообщение находится в очереди на отправку"
     #    "sent"         "Сообщение отправлено"
@@ -90,6 +90,13 @@ module Mfms
       @status = status
     end
 
+    def validate!
+      raise ArgumentError, "Phone should be assigned to #{self.class}." if @phone.nil?
+      raise ArgumentError, "Phone number should contain only numbers. Minimum length is 10. #{@phone.inspect} is given." unless @phone =~ /^[0-9]{10,}$/
+      raise ArgumentError, "Subject should be assigned to #{self.class}." if @subject.nil?
+      raise ArgumentError, "Message should be assigned to #{self.class}." if @message.nil?
+    end
+
     private
 
       def self.establish_connection
@@ -98,13 +105,6 @@ module Mfms
         http.use_ssl = @@ssl
         http.cert_store = @@cert_store
         http
-      end
-
-      def validate!
-        raise ArgumentError, "Phone should be assigned to #{self.class}." if @phone.nil?
-        raise ArgumentError, "Phone number should contain only numbers. Minimum length is 10. #{@phone.inspect} is given." unless @phone =~ /^[0-9]{10,}$/
-        raise ArgumentError, "Subject should be assigned to #{self.class}." if @subject.nil?
-        raise ArgumentError, "Message should be assigned to #{self.class}." if @message.nil?
       end
 
       def self.init_cert_store cert
