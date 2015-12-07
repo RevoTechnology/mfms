@@ -10,12 +10,12 @@ module Mfms
     attr_accessor :phone, :subject, :message
     attr_reader :id, :status
 
-    def initialize(phone, subject, message, translit = @@translit)
+    def initialize(phone, subject, message, translit = nil)
       @phone = phone
       @subject = subject
       @message = message
       @status = 'not-sent'
-      @translit = translit
+      @translit = translit.nil? ? @@translit : translit
 
       validate!
     end
