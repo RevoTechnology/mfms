@@ -10,26 +10,33 @@ module Mfms
     attr_accessor :phone, :subject, :message, :account, :login, :password, :server, :cert, :port, :ssl_port, :ssl
     attr_reader :id, :status, :errors
 
-    def initialize(phone, subject, message, translit = nil, account = nil)
-      @phone = phone
-      @subject = subject
-      @message = message
+    def initialize(data)
+      @phone = data.fetch(:phone, nil)
+      @subject = data.fetch(:subject, nil)
+      @message = data.fetch(:message, nil)
       @status = 'not-sent'
-      account = "@@#{account}".to_sym
-      account_variable = if account.present? && self.class.class_variables.include?(account)
-                           account
+      account_name = data[:account]
+      account_variable = if account_name.present?
+                           var_name = "@@#{account_name}".to_sym
+                           if self.class.class_variables.include?(var_name)
+                             var_name
+                           else
+                             raise ArgumentError, "Account with name '#{account_name}' is not defined"
+                           end
                          else
-                           self.class.class_variables.select{|sym| sym.to_s.include?('revoup0')}.first
+                           self.class.default_account
                          end
-      account_settings = Mfms::SMS.class_variable_get(account_variable)
+      account_settings = self.class.class_variable_get(account_variable)
       @login = account_settings[:login]
+      @connector = account_settings[:connector]
       @password = account_settings[:password]
       @ssl = account_settings[:ssl]
       @ssl_port = account_settings[:ssl_port]
       @port = account_settings[:port]
       @cert = account_settings[:cert]
       @server = account_settings[:server]
-      @translit = translit.nil? ? account_settings[:translit] : translit
+      @translit = data.fetch(:translit, account_settings[:translit])
+      @priority = data.fetch(:priority, account_settings[:priority])
       @errors = []
       validate!
     end
@@ -39,11 +46,25 @@ module Mfms
         account = setting.keys.first
         account_settings = setting[account]
         account_settings[:cert] = init_cert_store(account_settings[:cert])
-        account_settings[:ssl] = account_settings[:ssl].presence || true
-        account_settings[:translit] = account_settings[:translit].presence || false
-        class_variable_set("@@#{account}", account_settings)
-        validate_settings!(account_settings)
+        account_settings[:ssl] = account_settings.fetch(:ssl, true)
+        account_settings[:translit] = account_settings.fetch(:translit, false)
+        account_settings[:additional_args] = account_settings.fetch(:additional_args, nil)
+        account_settings[:priority] = account_settings.fetch(:priority, nil)
+        if settings_valid?(account_settings)
+          self.class_variable_set("@@#{account}", account_settings)
+        end
       end
+    end
+
+    def self.default_account
+      default_account = nil
+      Array.wrap(class_variables).each do |account|
+        if class_variable_get(account.to_s).has_key?(:default)
+          default_account = account
+          break
+        end
+      end
+      default_account || raise(ArgumentError, 'One of the accounts should be specified by default')
     end
 
     # => SMS send status codes:
@@ -103,9 +124,15 @@ module Mfms
 
     def validate!
       raise ArgumentError, "Phone should be assigned to #{self.class}." if @phone.nil?
-      raise ArgumentError, "Phone number should contain only numbers. Minimum length is 10. #{@phone.inspect} is given." unless @phone =~ /^[0-9]{10,}$/
+      unless @phone =~ /^[0-9]{10,}$/
+        raise ArgumentError, 'Phone number should contain only numbers. Minimum'+
+                             "length is 10. #{@phone.inspect} is given."
+      end
       raise ArgumentError, "Subject should be assigned to #{self.class}." if @subject.nil?
       raise ArgumentError, "Message should be assigned to #{self.class}." if @message.nil?
+      if @priority && !%w(low normal high realtime).include?(@priority)
+        raise ArgumentError, 'Priority is not valid.'
+      end
     end
 
     private
@@ -126,25 +153,31 @@ module Mfms
       cert_store
     end
 
-    def self.validate_settings!(settings)
-      raise ArgumentError, "Login should be defined for #{self}." if settings[:login].nil?
-      raise ArgumentError, "Password should be defined for #{self}." if settings[:password].nil?
-      raise ArgumentError, "Server should be defined for #{self}." if settings[:server].nil?
-      raise ArgumentError, "Port should be defined for #{self}." if settings[:port].nil?
-      raise ArgumentError, "Port for ssl should be defined for #{self}." if settings[:ssl_port].nil?
-      raise ArgumentError, "Port should contain only numbers. #{settings[:port].inspect} is given." unless settings[:port].instance_of?(Fixnum)
-      raise ArgumentError, "Port for ssl should contain only numbers. #{settings[:ssl_port].inspect} is given." unless settings[:ssl_port].instance_of?(Fixnum)
+    def self.settings_valid?(settings)
+      [:login, :password, :server, :port, :ssl_port].each do |attr|
+        if settings[attr].nil?
+          raise ArgumentError, "#{attr.to_s.gsub(/_/,' ').capitalize} should be defined for #{self}."
+        end
+      end
+      [:port, :ssl_port].each do |attr|
+        unless settings[attr].instance_of?(Fixnum)
+          raise ArgumentError,
+                "#{attr.to_s.gsub(/_/,' ').capitalize} should contain only numbers. #{settings[attr].inspect} is given."
+        end
+      end
+      true
     end
 
     def send_url
       message = @translit ? Russian.translit(@message) : @message
-      "/revoup/connector0/send?login=#{@login}&password=#{@password}&" +
+      url = "/revoup/#{@connector}/send?login=#{@login}&password=#{@password}&" +
           "subject[0]=#{@subject}&address[0]=#{@phone}&text[0]=#{URI.encode(message)}"
+      url += "&priority=#{@priority}" if @priority
+      url
     end
 
-    def self.status_url(msg_id)
-      "/revoup/connector0/status?login=#{@login}&password=#{@password}&" +
-          "providerId[0]=#{msg_id}"
+    def status_url(msg_id)
+      "/revoup/#{@connector}/status?login=#{@login}&password=#{@password}&providerId[0]=#{msg_id}"
     end
 
   end
