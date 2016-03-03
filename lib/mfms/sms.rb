@@ -15,9 +15,14 @@ module Mfms
       @subject = data.fetch(:subject, nil)
       @message = data.fetch(:message, nil)
       @status = 'not-sent'
-      account = "@@#{data[:account]}".to_sym
-      account_variable = if account.present? && self.class.class_variables.include?(account)
-                           account
+      account_name = data[:account]
+      account_variable = if account_name.present?
+                           var_name = "@@#{account_name}".to_sym
+                           if self.class.class_variables.include?(var_name)
+                             var_name
+                           else
+                             raise ArgumentError, "Account with name '#{account_name}' is not defined"
+                           end
                          else
                            self.class.default_account
                          end
