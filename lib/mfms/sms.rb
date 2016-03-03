@@ -8,7 +8,7 @@ module Mfms
   class SMS
 
     attr_accessor :phone, :subject, :message, :account, :login, :password, :server, :cert, :port, :ssl_port, :ssl
-    attr_reader :id, :status
+    attr_reader :id, :status, :errors
 
     def initialize(phone, subject, message, translit = nil, account = nil)
       @phone = phone
@@ -30,6 +30,7 @@ module Mfms
       @cert = account_settings[:cert]
       @server = account_settings[:server]
       @translit = translit.nil? ? account_settings[:translit] : translit
+      @errors = []
       validate!
     end
 
@@ -59,9 +60,14 @@ module Mfms
         request = Net::HTTP::Get.new(send_url)
         response = http.request(request)
         body = response.body.split(';')
-        return body[0] unless body[0] == 'ok'
-        @status = 'sent'
-        @id = body[2]
+        if body[0] == 'ok'
+          @status = 'sent'
+          @id = body[2]
+          true
+        else
+          @errors << body[0]
+          false
+        end
       end
     end
 
