@@ -6,6 +6,7 @@ require 'russian'
 
 module Mfms
   class SMS
+    ServerRequestError = Class.new(StandardError)
 
     attr_accessor :phone, :subject, :message, :account, :login, :password, :server, :cert, :port, :ssl_port, :ssl
     attr_reader :id, :status, :errors
@@ -80,6 +81,9 @@ module Mfms
       establish_connection.start do |http|
         request = Net::HTTP::Get.new(send_url)
         response = http.request(request)
+
+        raise ServerRequestError if response.code.to_i >= 400
+
         body = response.body.split(';')
         if body[0] == 'ok'
           @status = 'sent'
