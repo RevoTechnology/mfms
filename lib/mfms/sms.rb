@@ -6,6 +6,7 @@ require 'russian'
 
 module Mfms
   class SMS
+    RequestFailure = Class.new(StandardError)
 
     attr_accessor :phone, :subject, :message, :account, :login, :password, :server, :cert, :port, :ssl_port, :ssl
     attr_reader :id, :status, :errors
@@ -107,12 +108,18 @@ module Mfms
     #    "error-provider-id-unknown"    "Сообщение с таким идентификатором не найдено"
 
     def self.status(id)
-      establish_connection.start do |http|
-        request = Net::HTTP::Get.new(status_url id)
+      fake_instance = new(phone: '0000000000', message: '', subject: '')
+      fake_instance.__send__(:establish_connection).start do |http|
+        request = Net::HTTP::Get.new(fake_instance.__send__(:status_url, id))
         response = http.request(request)
+
+        raise RequestFailure, response if response.code.to_i >= 400
+
         body = response.body.split(';')
         return body[0], body[2] # code, status
       end
+    rescue Net::OpenTimeout => e
+      raise RequestFailure, e
     end
 
     def update_status

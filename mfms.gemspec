@@ -16,5 +16,8 @@ Gem::Specification.new do |spec|
   spec.files         = `git ls-files`.split($/)
   spec.require_paths = ["lib"]
 
+  spec.add_development_dependency "rspec"
+  spec.add_development_dependency "webmock"
+  spec.add_dependency 'activesupport'
   spec.add_dependency 'russian', '0.6.0'
 end
